@@ -11,7 +11,7 @@
 
 import imaplib, getpass, re, datetime
 pattern_uid = re.compile('\d+ \(UID (?P<uid>\d+)\)')
-
+__all__ = ['connect']
 def connect(email):
     try:
         imap = imaplib.IMAP4_SSL('imap.gmail.com')
@@ -56,7 +56,7 @@ def move(imap, label1, label2):
     msgs = get_all_from(imap, label1)
     while len(msgs) > 0:
         msg = msgs.pop()
-        msg_uid = get_message_uid(imap, msg) 
+        msg_uid = get_message_uid(imap, msg)
         while not move_to(imap, msg_uid, label2):
             pass
     imap.expunge()
@@ -66,13 +66,13 @@ def main(email, reverse=False):
     a, b = 'etiqueta-u', 'etiqueta-dos'
     if reverse:
         a, b = b, a
-        imap.delete(get_label())
+        imap.delete(label_for())
     move(imap, a, b)
     if not reverse:
-        imap.create(get_label())
+        imap.create(label_for())
     disconnect(imap)
 
-def get_label(date=datetime.datetime.today()):
+def label_for(date=datetime.datetime.today()):
     return date.strftime("bak_%Y%m%d")
 
 if __name__ == '__main__':
