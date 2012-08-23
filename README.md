@@ -1,4 +1,4 @@
-gc
-==
+gmc
+===
 
 Gmail cleaner
