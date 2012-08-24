@@ -11,7 +11,62 @@
 
 import imaplib, getpass, re, datetime
 pattern_uid = re.compile('\d+ \(UID (?P<uid>\d+)\)')
-__all__ = ['connect']
+
+class Gmail(object):
+    """Connection and operations to gmail inbox.
+    """
+
+    pattern_uid = re.compile('\d+ \(UID (?P<uid>\d+)\)')
+    def __init__(self, email):
+        """Initializes a gmail connection to email account.
+
+        Arguments:
+        - `email`:
+        """
+        self.__email = email
+
+    def connect(self):
+        try:
+            self.__imap = imaplib.IMAP4_SSL('imap.gmail.com')
+            password = getpass.getpass("Enter your password: ")
+            self.__imap.login(self.__email, password)
+        except Exception, e:
+            print("No ha sigut possible connectar")
+            raise e
+
+    def disconnect(self):
+        self.__imap.logout()
+
+    def get_from_label(self, label):
+        """
+        Returns a list of id's of messages of the mailbox label
+        Arguments:
+        - `label`:
+        """
+        self.__imap.select(mailbox=label, readonly=False)
+        resp, items = self.__imap.search(None, 'All')
+        if resp == 'OK':
+            return items[0].split()
+        else:
+            return []
+
+    def get_uids_from_label(self, label):
+        def get_message_uid(m_id):
+            resp, data = self.__imap.fetch(m_id, "(UID)")
+            if resp == 'OK':
+                return parse_uid(data[0])
+        return map(get_message_uid, self.get_from_label(label))
+
+def get_all_from(imap, label):
+    """Returns a list of id's of messages of the mailbox label"""
+    imap.select(mailbox=label, readonly=False)
+    resp, items = imap.search(None, 'All')
+    if resp == 'OK':
+        return items[0].split()
+    else:
+        return []
+
+
 def connect(email):
     try:
         imap = imaplib.IMAP4_SSL('imap.gmail.com')
