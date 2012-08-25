@@ -6,19 +6,31 @@ class TestGmail(unittest.TestCase):
     def setUp(self):
         self.gmail = gmc.Gmail(ask_email())
 
-    def test_connection(self):
-        self.gmail.connect()
-        self.assertIsNotNone(self.gmail._Gmail__imap)
-        self.gmail.disconnect()
+    # def test_connection(self):
+    #     self.gmail.connect()
+    #     self.assertIsNotNone(self.gmail._Gmail__imap)
+    #     self.gmail.disconnect()
 
-    def test_labels(self):
-        self.gmail.connect()
-        msgs = self.gmail.get_uids_from_label(ask_label())
-        print(msgs)
+    # def test_labels(self):
+    #     self.gmail.connect()
+    #     msgs = self.gmail.get_uids_from_label(ask_label())
+    #     print(msgs)
+    #     self.gmail.disconnect()
 
     # def test_move(self):
-    #     imap = gmp.connect(self.email)
-    #     gmp.move(imap, 'prova1', 'prova2')
+    #     self.gmail.connect()
+    #     self.gmail.move_labels(ask_label("source: "), ask_label("destination: "))
+
+    # def test_create_label(self):
+    #     self.gmail.connect()
+    #     self.gmail.create_label(gmc.label_for())
+    #     self.gmail.disconnect()
+
+    def test_delete_label(self):
+        self.gmail.connect()
+        self.gmail.create_label('prova')
+        self.gmail.delete_label('prova')
+        self.gmail.disconnect()
 
 class TestLabels(unittest.TestCase):
 
@@ -31,8 +43,8 @@ class TestLabels(unittest.TestCase):
 
 def ask_email():
     return raw_input("email: ")
-def ask_label():
-    return raw_input("label: ")
+def ask_label(prompt="label: "):
+    return raw_input(prompt)
 
 if __name__ == '__main__':
     unittest.main()
