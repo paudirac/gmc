@@ -30,6 +30,8 @@ class TestGmail(unittest.TestCase):
         self.gmail.connect()
         self.gmail.create_label('prova')
         self.gmail.delete_label('prova')
+        self.gmail.delete_label(gmc.label_for())
+        self.gmail.delete_label('py')
         self.gmail.disconnect()
 
 class TestLabels(unittest.TestCase):

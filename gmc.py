@@ -2,22 +2,13 @@
 
 # Based on http://stackoverflow.com/questions/3527933/move-an-email-in-gmail-with-python-and-imaplib
 
-# 1. Mirar etiquetes anteriors i borrar-les
-# 2. Crear etiqueta d'avui
-# 3. Mirar etiquetes_a_moure i exclude
-# 4. Moure tot allò que no sigui exclude de les etiquetes_a_moure a
-# avui
-# 5. Ja està
-
 import imaplib, getpass, re, datetime
-pattern_uid = re.compile('\d+ \(UID (?P<uid>\d+)\)')
-
 
 class Gmail(object):
-    """Connection and operations to gmail inbox.
+    """
+    Connection and operations to gmail inbox.
     """
 
-    pattern_uid = re.compile('\d+ \(UID (?P<uid>\d+)\)')
     def __init__(self, email):
         """Initializes a gmail connection to email account.
 
@@ -49,6 +40,7 @@ class Gmail(object):
                 return []
 
         def parse_uid(data):
+            pattern_uid = re.compile('\d+ \(UID (?P<uid>\d+)\)')
             match = pattern_uid.match(data)
             return match.group('uid')
 
@@ -58,24 +50,28 @@ class Gmail(object):
                 return parse_uid(data[0])
         return map(get_message_uid, get_ids_from_label(label))
 
-    def move_labels(self, from_label, to_label):
+    def _delete(self, uid):
+        mov, data = self.__imap.uid('STORE', uid, '+FLAGS', '(\Deleted)')
+        return mov == 'OK'
+
+    def _copy(self, uid, to_label):
+        resp, data = self.__imap.uid('COPY', uid, to_label)
+        return resp == 'OK'
+
+    def move_labels(self, from_label, to_label=''):
         uids = self.get_uids_from_label(from_label)
         self.create_label(to_label)
 
-        def delete(uid):
-            mov, data = self.__imap.uid(
-                'STORE', uid, '+FLAGS', '(\Deleted)')
-        def copy(uid, to_label):
-            resp, data = self.__imap.uid('COPY', uid, to_label)
-            if resp == 'OK':
-                delete(uid)
+        def try_copy(uid, to_label):
+            if self._copy(uid, to_label):
+                self._delete(uid)
                 return True
             else:
                 return False
 
         while len(uids) > 0:
             uid = uids.pop()
-            while not copy(uid, to_label):
+            while not try_copy(uid, to_label):
                 pass
         self.__imap.expunge()
 
@@ -96,21 +92,29 @@ class Gmail(object):
 
     def delete_label(self, label):
         if self.label_exists(label):
+            uids = self.get_uids_from_label(label)
+            while len(uids) > 0:
+                uid = uids.pop()
+                while not self._delete(uid):
+                    pass
+            self.__imap.expunge()
             self.__imap.delete(label)
-
-def main(email, reverse=False):
-    imap = connect(email)
-    a, b = 'etiqueta-u', 'etiqueta-dos'
-    if reverse:
-        a, b = b, a
-        imap.delete(label_for())
-    move(imap, a, b)
-    if not reverse:
-        imap.create(label_for())
-    disconnect(imap)
 
 def label_for(date=datetime.datetime.today()):
     return date.strftime("bak_%Y%m%d")
+
+def main(email,backup_labels,delete_previous=False):
+    gmail = Gmail(email)
+    new_label = label_for()
+    gmail.connect()
+    gmail.create_label(new_label)
+    for label in backup_labels:
+        gmail.move_labels(label, new_label)
+    # if delete_previous:
+    #     pattern = ''
+    #     prvious_labels = gmail.find_labels(pattern)
+    #     for label in previous_labels:
+    #         gmail.delete_label(label)
 
 if __name__ == '__main__':
 
@@ -119,12 +123,12 @@ if __name__ == '__main__':
     parser.add_argument('email', type=str,
                         help="email address you want to clean")
 
-    parser.add_argument('-r', '--reverse', metavar='reverse',
-                        action='store_const',
-                        const=True,
-                        default=False,
-                        help="changes reversely")
+    parser.add_argument('backup_labels',
+                        type=str,
+                        nargs='*',
+                        help="a list of labels to be backuped",
+                        default=False)
 
     args = parser.parse_args()
-    main(args.email, reverse=args.reverse)
+    main(args.email, args.backup_labels)
 
